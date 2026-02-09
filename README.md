@@ -1,0 +1,111 @@
+# Framer × ElevenLabs Voice Chat
+
+> Open-source Framer code component for [ElevenLabs Conversational AI](https://elevenlabs.io/conversational-ai). Drop-in voice + text chat widget with full Framer property controls.
+
+<!-- Replace with actual demo GIF/screenshot -->
+<!-- ![Demo](docs/demo.gif) -->
+
+## ✨ Features
+
+- **Voice + Text modes** — WebRTC voice chat with automatic WebSocket fallback
+- **Framer-native controls** — 40+ customizable properties (colors, fonts, padding, icons, sounds)
+- **Mobile overlay mode** — Full-screen chat optimized for iOS Safari
+- **Audio heatmap visualizer** — WebGL shader effect with audio reactivity
+- **Client tools** — Page navigation, context reading, time queries, user data sync
+- **iOS Safari fixes** — Audio warm-up, microphone cleanup, VAD tuning
+- **12 test files** — Comprehensive test suite for all hooks and utilities
+
+## 🚀 Quick Start
+
+### Option 1: Copy-paste into Framer
+
+1. Open your Framer project
+2. Go to **Assets → Code → New Code File**
+3. Copy the contents of [`src/framer/ElevenLabsVoiceChat.bundle.tsx`](src/framer/ElevenLabsVoiceChat.bundle.tsx) into the file
+4. Drag the component onto your canvas
+5. Set your **Agent ID** in the property controls panel
+
+### Option 2: Use via Framer Marketplace
+
+_(Coming soon)_
+
+## 🏗 Architecture
+
+```
+src/core/
+├── Chat/
+│   ├── ElevenLabsVoiceChat.tsx     # Main component (1,387 lines)
+│   └── components/                  # Button, ChatInput, ChatHeader, etc.
+├── hooks/
+│   ├── useElevenLabsSession.ts     # Facade hook (composes all sub-hooks)
+│   ├── useSessionConnection.ts     # WebRTC/WebSocket connection lifecycle
+│   ├── useClientTools.ts           # Tool registry (skip_turn, end_call, etc.)
+│   ├── useAgentNavigation.tsx      # Framer-aware page navigation
+│   ├── useChatMessages.ts          # Message state + sessionStorage persistence
+│   ├── useAudioControls.ts         # Audio volume/mute controls
+│   ├── useSessionTimeout.ts        # Inactivity timeout with warning
+│   ├── useScribe.ts                # Standalone speech-to-text via WebSocket
+│   └── __tests__/                  # 10 test files
+├── Visualizers/
+│   ├── AudioHeatmap.tsx            # WebGL shader heatmap
+│   ├── BarVisualizer.tsx           # Audio bar visualization
+│   └── ShimmeringText.tsx          # Animated text effect
+├── ChatTriggerButton/              # Standalone trigger button component
+├── utils/                          # Helpers (IDs, storage, fonts, page reader)
+└── types.ts                        # Shared TypeScript types
+
+src/framer/
+└── ElevenLabsVoiceChat.bundle.tsx  # Self-contained Framer bundle (copy this into Framer)
+```
+
+## 🎛 Property Controls
+
+| Section | Controls |
+|---------|----------|
+| **Agent Config** | Agent ID, Start with Text, Auto Connect, Debug, Display Mode |
+| **Trigger Button** | Background, Text, Focus Ring, Border Radius, Border, Padding, Gap, Labels, Font, Beta Text |
+| **Visualizer** | Enable, Image, Size, Scale, Colors, Speed, Angle, Glow, Noise, Audio Reactivity |
+| **Theme** | Corner Radius, Border, Background, Foreground, Muted, Focus Ring |
+| **Chat Interface** | Message Bubble colors, Input field, Fonts |
+| **Action Buttons** | Send, Mic, End Call, Call — each with Background, Text, Icon |
+| **Icons** | Send, Mic Active, Mic Muted, End Call, Call, Copy, Check |
+| **Sounds** | Custom sound effects per status (connecting, thinking, listening, etc.) |
+
+## 🛠 Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+### Setup
+
+```bash
+git clone https://github.com/edogbeatz/framer-elevenlabs-voicechat.git
+cd framer-elevenlabs-voicechat
+npm install
+```
+
+### Run Tests
+
+```bash
+npm test              # Watch mode
+npm run test:run      # Single run
+npm run test:coverage # With coverage report
+```
+
+### Type Check
+
+```bash
+npm run lint
+```
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**TL;DR:** Edit `src/core/` first → run tests → copy changes to the bundle.
+
+## 📄 License
+
+[MIT](LICENSE) © Advanced Engineering Lab

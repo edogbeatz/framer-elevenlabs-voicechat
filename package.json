@@ -1,0 +1,45 @@
+{
+    "name": "framer-elevenlabs-voicechat",
+    "version": "1.0.0",
+    "description": "Open-source Framer code component for ElevenLabs Conversational AI. Drop-in voice + text chat widget with full property controls.",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/edogbeatz/framer-elevenlabs-voicechat.git"
+    },
+    "keywords": [
+        "framer",
+        "elevenlabs",
+        "voice-chat",
+        "conversational-ai",
+        "react",
+        "code-component",
+        "webrtc"
+    ],
+    "author": "Advanced Engineering Lab",
+    "type": "commonjs",
+    "scripts": {
+        "test": "vitest",
+        "test:run": "vitest run",
+        "test:coverage": "vitest run --coverage",
+        "lint": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@elevenlabs/client": "^0.13.1",
+        "framer-motion": "^12.27.0",
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
+        "react-markdown": "^9.1.0"
+    },
+    "devDependencies": {
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.2",
+        "@types/react": "^19.2.8",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.2",
+        "jsdom": "^27.4.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.17"
+    }
+}
