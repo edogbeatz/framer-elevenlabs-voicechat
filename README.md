@@ -15,19 +15,31 @@
 - **iOS Safari fixes** — Audio warm-up, microphone cleanup, VAD tuning
 - **12 test files** — Comprehensive test suite for all hooks and utilities
 
-## 🚀 Quick Start
+## 🚀 Quick Start (No coding required!)
 
-### Option 1: Copy-paste into Framer
+You don't need to know how to code to use this. Just copy, paste, and go.
 
-1. Open your Framer project
-2. Go to **Assets → Code → New Code File**
-3. Copy the contents of [`src/framer/ElevenLabsVoiceChat.bundle.tsx`](src/framer/ElevenLabsVoiceChat.bundle.tsx) into the file
-4. Drag the component onto your canvas
-5. Set your **Agent ID** in the property controls panel
+### Step 1 — Open the component file
 
-### Option 2: Use via Framer Marketplace
+👉 [**Click here to open the component code**](https://raw.githubusercontent.com/edogbeatz/framer-elevenlabs-voicechat/main/src/framer/ElevenLabsVoiceChat.bundle.tsx)
 
-_(Coming soon)_
+Select everything on that page (`Cmd + A`) and copy it (`Cmd + C`).
+
+### Step 2 — Paste it into Framer
+
+1. Open your **Framer** project
+2. In the left sidebar, click **Assets** (the puzzle piece icon)
+3. Click the **+** button → choose **Code Component**
+4. **Select all** the default code that appears (`Cmd + A`) and **delete** it
+5. **Paste** the code you copied (`Cmd + V`)
+
+### Step 3 — Add it to your page
+
+1. Drag the new **ElevenLabsVoiceChat** component from the Assets panel onto your canvas
+2. On the right panel, paste your **ElevenLabs Agent ID** (you get this from [elevenlabs.io](https://elevenlabs.io/conversational-ai))
+3. Hit **Preview** — that's it! 🎉
+
+> **💡 Tip:** All the colors, fonts, button styles, and sounds can be customized in the right-side property panel — no code needed.
 
 ## 🏗 Architecture
 
