@@ -15,6 +15,10 @@
 - **iOS Safari fixes** — Audio warm-up, microphone cleanup, VAD tuning
 - **12 test files** — Comprehensive test suite for all hooks and utilities
 
+### 💬 What you get out of the box
+
+This component comes packed with features that are hard to build yourself in Framer — like **voice-triggered page navigation** (something Framer doesn't natively support well, but we found creative workarounds for), **real-time audio visualizers**, **text + voice mode switching**, and **mobile-optimized overlays**. All you need to get started is an **ElevenLabs Agent ID** — paste it in and everything just works.
+
 ## 🚀 Quick Start (No coding required!)
 
 You don't need to know how to code to use this. Just copy, paste, and go.
