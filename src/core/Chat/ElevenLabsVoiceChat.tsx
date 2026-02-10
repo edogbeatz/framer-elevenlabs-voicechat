@@ -252,7 +252,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         theme: themeProps = {},
         bubbles = { userBg: "#FFFFFF", userText: "#1C1C1C", agentBg: "#2C2C2C", agentText: "#FFFFFF" },
         input = { bg: "#2C2C2C" },
-        visualizer = { bg: undefined as string | undefined },
         // Button Tokens (By Function)
         triggerButton = { bg: "#000000", text: "#FFFFFF", focus: "rgba(255,255,255,0.4)" },
         btnSend = { bg: "#000000", text: "#FFFFFF" },

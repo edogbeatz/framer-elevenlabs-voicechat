@@ -94,22 +94,22 @@ export const TriggerHeatmapIcon = React.memo<TriggerHeatmapIconProps>(({
             {enabled ? (
                 <>
                     <AudioHeatmap
-                        image={image}
-                        colors={colors}
-                        colorBack={colorBack}
-                        scale={scale}
-                        speed={speed}
-                        angle={angle}
-                        noise={noise}
-                        innerGlow={innerGlow}
-                        outerGlow={outerGlow}
-                        contour={contour}
+                        image={image ?? "https://framerusercontent.com/images/33s7K51323Jz9622k6dKk3yV2s.png"}
+                        colors={colors ?? ["#11206A", "#1F3BA2", "#2F63E7", "#6BD7FF", "#FFE679", "#FF991E", "#FF4C00"]}
+                        colorBack={colorBack ?? "#0d1117"}
+                        scale={scale ?? 0.6}
+                        speed={speed ?? 0.4}
+                        angle={angle ?? 30}
+                        noise={noise ?? 0}
+                        innerGlow={innerGlow ?? 0.3}
+                        outerGlow={outerGlow ?? 0.5}
+                        contour={contour ?? 0.6}
                         fit={fit}
-                        audioReactivity={audioReactivity}
-                        volumeToAngle={volumeToAngle}
-                        bassToInnerGlow={bassToInnerGlow}
-                        midToOuterGlow={midToOuterGlow}
-                        trebleToContour={trebleToContour}
+                        audioReactivity={audioReactivity ?? 1.2}
+                        volumeToAngle={volumeToAngle ?? 30}
+                        bassToInnerGlow={bassToInnerGlow ?? 0.5}
+                        midToOuterGlow={midToOuterGlow ?? 0.8}
+                        trebleToContour={trebleToContour ?? 0.3}
                         isDesignMode={isDesignMode}
                         style={{ width: "100%", height: "100%" }}
                     />
