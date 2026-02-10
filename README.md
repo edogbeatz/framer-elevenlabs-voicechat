@@ -1,6 +1,6 @@
 # Framer × ElevenLabs Voice Chat
 
-> Open-source Framer code component for [ElevenLabs Conversational AI](https://elevenlabs.io/conversational-ai). Drop-in voice + text chat widget with full Framer property controls.
+> Open-source Framer code component for [ElevenLabs Conversational AI](https://try.elevenlabs.io/hlxl3hypn71z). Drop-in voice + text chat widget with full Framer property controls.
 
 <!-- Replace with actual demo GIF/screenshot -->
 <!-- ![Demo](docs/demo.gif) -->
@@ -40,7 +40,7 @@ Select everything on that page (`Cmd + A`) and copy it (`Cmd + C`).
 ### Step 3 — Add it to your page
 
 1. Drag the new **ElevenLabsVoiceChat** component from the Assets panel onto your canvas
-2. On the right panel, paste your **ElevenLabs Agent ID** (you get this from [elevenlabs.io](https://elevenlabs.io/conversational-ai))
+2. On the right panel, paste your **ElevenLabs Agent ID** (you get this from [elevenlabs.io](https://try.elevenlabs.io/hlxl3hypn71z))
 3. Hit **Preview** — that's it! 🎉
 
 > **💡 Tip:** All the colors, fonts, button styles, and sounds can be customized in the right-side property panel — no code needed.
