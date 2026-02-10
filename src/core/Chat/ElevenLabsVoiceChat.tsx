@@ -254,7 +254,7 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         input = { bg: "#2C2C2C" },
         visualizer = { bg: undefined as string | undefined },
         // Button Tokens (By Function)
-        triggerButton = { bg: "#000000", text: "#FFFFFF", focus: "#FFFFFF" },
+        triggerButton = { bg: "#000000", text: "#FFFFFF", focus: "rgba(255,255,255,0.4)" },
         btnSend = { bg: "#000000", text: "#FFFFFF" },
         btnMic = { bg: "#27272A", text: "#FAFAFA" },
         btnEnd = { bg: "#DC2626", text: "#FAFAFA" },
@@ -370,13 +370,13 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
     const {
         bg: triggerBg = "#000000",
         text: triggerText = "#FFFFFF",
-        focus: triggerFocus = "#FFFFFF",
+        focus: triggerFocus = "rgba(255,255,255,0.4)",
         borderRadius: triggerBorderRadius = 28,
         border: triggerBorderObj,
         borderWidth: triggerBorderDirectWidth,
         borderStyle: triggerBorderDirectStyle,
         borderColor: triggerBorderDirectColor,
-        padding: triggerPadding = "4px 16px 4px 4px",
+        padding: triggerPadding = "4px 20px 4px 12px",
         gap: triggerGap = 8,
         labelOpen = "Close",
         labelClosed = "Chat",
@@ -524,7 +524,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
     const disconnectCooldownTimerRef = useRef<number | null>(null)
     const [isInputFocused, setIsInputFocused] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
-    const chatContainerRef = useRef<HTMLDivElement>(null)
     const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // Global cooldown check - uses sessionStorage to survive page navigation (Framer routing)
@@ -545,21 +544,10 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         } catch { /* sessionStorage unavailable */ }
     }, [])
 
-    // Global connection lock - uses sessionStorage with TTL to survive page navigation
-    // TTL prevents permanently stuck locks from failed connections
+    // Global connection lock - uses sessionStorage to survive page navigation
     const isInGlobalConnectionLock = useCallback(() => {
         try {
-            const isLocked = sessionStorage.getItem('__elevenLabsConnectionInProgress') === 'true'
-            if (!isLocked) return false
-            // Expire stale locks after 10 seconds (connection should never take this long)
-            const lockTime = parseInt(sessionStorage.getItem('__elevenLabsConnectionLockTime') || '0', 10)
-            if (Date.now() - lockTime > 10000) {
-                sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-                sessionStorage.removeItem('__elevenLabsConnectionLockTime')
-                console.log('[DEBUG] Cleared stale connectionLock (expired after 10s)')
-                return false
-            }
-            return true
+            return sessionStorage.getItem('__elevenLabsConnectionInProgress') === 'true'
         } catch { return false }
     }, [])
 
@@ -567,10 +555,8 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         try {
             if (locked) {
                 sessionStorage.setItem('__elevenLabsConnectionInProgress', 'true')
-                sessionStorage.setItem('__elevenLabsConnectionLockTime', String(Date.now()))
             } else {
                 sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-                sessionStorage.removeItem('__elevenLabsConnectionLockTime')
             }
             console.log('[DEBUG] setGlobalConnectionLock =', locked)
         } catch { /* sessionStorage unavailable */ }
@@ -594,15 +580,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         } catch { /* sessionStorage unavailable */ }
     }, [])
 
-    // Clear stale connection/disconnect locks on mount (e.g., from previous failed connections)
-    useEffect(() => {
-        try {
-            sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-            sessionStorage.removeItem('__elevenLabsConnectionLockTime')
-            sessionStorage.removeItem('__elevenLabsDisconnectInProgress')
-        } catch { /* ignore */ }
-    }, [])
-
     // ═══════════════════════════════════════════════════════════════════════════
     // HOOK: useEffect (React) - Mic denied event listener
     // ═══════════════════════════════════════════════════════════════════════════
@@ -614,37 +591,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         window.addEventListener("elevenlabs-mic-denied", handleMicDenied as EventListener)
         return () => window.removeEventListener("elevenlabs-mic-denied", handleMicDenied as EventListener)
     }, [])
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // HOOK: useEffect (React) - Click outside to close
-    // PURPOSE: Closes the chat panel when user clicks/taps outside of it
-    // ═══════════════════════════════════════════════════════════════════════════
-    useEffect(() => {
-        if (!isVisible) return
-
-        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-            // Don't close if clicking inside the chat container
-            if (chatContainerRef.current?.contains(event.target as Node)) {
-                return
-            }
-            // Don't close if clicking the trigger button (it has its own toggle logic)
-            const target = event.target as HTMLElement
-            if (target.closest('[data-trigger-button]')) {
-                return
-            }
-            // Close the chat
-            setIsVisible(false)
-        }
-
-        // Use mousedown/touchstart for immediate response (before click completes)
-        document.addEventListener('mousedown', handleClickOutside)
-        document.addEventListener('touchstart', handleClickOutside)
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-            document.removeEventListener('touchstart', handleClickOutside)
-        }
-    }, [isVisible])
 
     // ═══════════════════════════════════════════════════════════════════════════
     // HELPER: Thinking Timeout for Text Mode
@@ -1010,18 +956,18 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         ...style,
     }
 
-    // Mobile overlay container style - 80% height overlay positioned at bottom
+    // Mobile overlay container style - fullscreen fixed positioning
     // Uses dynamic viewport height (dvh) which adapts when mobile keyboard opens
     const overlayContainerStyle: React.CSSProperties = {
         position: "fixed",
-        top: "auto",
+        top: 0,
         left: 0,
         right: 0,
         bottom: 0,
         width: "100%",
-        height: "80dvh", // 80% of dynamic viewport height
+        height: "100dvh", // Dynamic viewport height - shrinks when keyboard opens
         maxWidth: "100vw",
-        maxHeight: "80dvh",
+        maxHeight: "100dvh", // Dynamic viewport height for keyboard awareness
         borderRadius: 0,
         backgroundColor: theme.bg,
         zIndex: 9999,
@@ -1032,33 +978,10 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
 
     return (
         <div style={{ position: "relative", width: "100%", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
-            {/* Backdrop for mobile overlay - tap to close */}
-            <AnimatePresence>
-                {isMobileOverlay && isVisible && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        onClick={() => setIsVisible(false)}
-                        style={{
-                            position: "fixed",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                            zIndex: 9998, // Below the chat panel (9999)
-                        }}
-                        aria-label="Close chat"
-                    />
-                )}
-            </AnimatePresence>
             {/* Chat Window (collapsible) */}
             <AnimatePresence mode="wait">
                 {isVisible && (
                     <motion.div
-                        ref={chatContainerRef}
                         className="agent-ui"
                         initial={isDesignMode ? false : { opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}

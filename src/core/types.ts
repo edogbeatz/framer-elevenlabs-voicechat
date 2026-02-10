@@ -58,6 +58,8 @@ export interface ChatMessage {
     content: string
     /** Optional session ID for tracking conversation boundaries */
     sessionId?: string
+    /** Timestamp for message ordering (voice mode ASR lag compensation) */
+    timestamp?: number
 }
 
 export interface LinkRegistryItem {
@@ -179,10 +181,6 @@ export interface ElevenLabsVoiceChatProps {
         midToOuterGlow?: number
         trebleToContour?: number
         volumeToAngle?: number
-    }
-    /** Visualizer appearance tokens */
-    visualizer?: {
-        bg?: string
     }
     /** @deprecated Use heatmap.scale instead */
     visualizerScale?: number

@@ -74,19 +74,18 @@ const warmUpAudioContext = async (debug: boolean): Promise<void> => {
             await globalAudioContext.resume()
         }
 
-        // Play a longer silent buffer (400ms) to fully activate audio pipeline
-        // Mobile devices need more time to initialize audio output, preventing first words cutoff
+        // Play a slightly longer silent buffer (200ms) to fully activate audio pipeline
+        // Short buffers may not be enough to initialize the output on some devices
         const sampleRate = globalAudioContext.sampleRate || 22050
-        const bufferLength = Math.floor(sampleRate * 0.4) // 400ms - extended for mobile reliability
+        const bufferLength = Math.floor(sampleRate * 0.2) // 200ms
         const buffer = globalAudioContext.createBuffer(1, bufferLength, sampleRate)
         const source = globalAudioContext.createBufferSource()
         source.buffer = buffer
         source.connect(globalAudioContext.destination)
         source.start(0)
 
-        // Wait for the buffer to finish plus settling time before proceeding
-        // 500ms total ensures audio pipeline is fully active on all mobile browsers
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Wait for the buffer to finish playing before proceeding
+        await new Promise(resolve => setTimeout(resolve, 250))
 
         if (debug) console.log("[ElevenLabs] Mobile audio context warmed up")
     } catch (e) {
@@ -380,7 +379,6 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
 
         isConnectingRef.current = true
         userRequestedDisconnectRef.current = false  // Reset permanent flag - new connection should receive messages
-        retryCountRef.current = 0  // Reset so each user-initiated click gets a fresh retry budget
         const attemptId = ++connectionAttemptIdRef.current
         lastConnectOptionsRef.current = connectOptions
         setError("")
@@ -538,14 +536,12 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
                             vad: {
                                 // VAD threshold: Default 0.4, range 0.1-0.9 (per ElevenLabs docs)
                                 // Lower = more sensitive, Higher = less sensitive to background
-                                // iOS Safari: 0.85 - CRITICAL for echo prevention (no hardware AEC)
-                                // Other platforms: 0.7 - still strict for background voice filtering
-                                vad_threshold: isIOSSafari() ? 0.85 : Math.max(vadThreshold, 0.7),
+                                // Cross-platform hardened to 0.6 to prevent background noise triggers
+                                vad_threshold: Math.max(vadThreshold, 0.6),
 
-                                // Filter brief noise bursts and background chatter
-                                // iOS Safari: 500ms to prevent echo from TTS bleeding into mic
-                                // Other platforms: 300ms for sustained speech detection
-                                min_speech_duration_ms: isIOSSafari() ? 500 : 300,
+                                // Filter brief noise bursts (door slams, coughs, TV audio spikes)
+                                // Only trigger on sustained speech of 150ms+ 
+                                min_speech_duration_ms: 150,
 
                                 // Official API parameter from elevenlabs.io/docs/agents-platform
                                 // Disable to prevent agent from picking up background voices/audio
@@ -591,10 +587,6 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
                     onDisconnect: (details: DisconnectDetails) => {
                         // Guard: Don't cascade if we initiated disconnect OR if we're in a mode transition
                         if (stateRef.current === "disconnected" || isCleaningUpRef.current || isTransitioningRef.current) return
-
-                        // CRITICAL FIX: Set flag IMMEDIATELY to block any pending mode changes
-                        // This prevents race condition where onModeChange fires after disconnect begins
-                        userRequestedDisconnectRef.current = true
 
                         // Calculate session metrics for debugging
                         const sessionDuration = sessionStartTimeRef.current
@@ -662,14 +654,8 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
                                 setStateSafe("speaking")
                             } else if (mode.mode === "listening") {
                                 listeningDebounceRef.current = setTimeout(() => {
-                                    // CRITICAL FIX: Check disconnect flag during debounce callback
-                                    // State could have changed to disconnected during the 600ms delay
-                                    if (userRequestedDisconnectRef.current || stateRef.current === "disconnected") {
-                                        return  // Don't update state if disconnect has begun
-                                    }
-
                                     const outputVol = conversationRef.current?.getOutputVolume?.() || 0
-                                    if ((stateRef.current as string) !== "disconnected" && outputVol < 0.01) {
+                                    if (stateRef.current !== "disconnected" && outputVol < 0.01) {
                                         if (conversationRef.current?.setMicMuted) {
                                             conversationRef.current.setMicMuted(false)
                                         }
@@ -811,14 +797,6 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
             if (!isRetryingWithFallback) {
                 isConnectingRef.current = false
             }
-            // SAFETY NET: If isConnectingRef is still true after 15s, force-reset
-            // Covers edge cases where fallback chains fail silently (e.g., unmount during retry)
-            setTimeout(() => {
-                if (isConnectingRef.current) {
-                    isConnectingRef.current = false
-                    if (debug) console.warn("[ElevenLabs] Safety: reset stale isConnectingRef after 15s")
-                }
-            }, 15000)
         }
     }, [
         agentId, startWithText, shareContext, contextAllowlist,

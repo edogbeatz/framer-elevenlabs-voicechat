@@ -247,14 +247,6 @@ export const useAgentNavigation = ({
 
         if (typeof window === "undefined") return "Navigation queued (SSR)."
 
-        // MOBILE NAVIGATION BLOCK: Disable navigation on mobile devices
-        // Mobile overlay mode has DOM isolation issues that prevent reliable navigation
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        if (isMobile) {
-            addLog?.(`❌ Navigation blocked on mobile device`, "warn")
-            return "Navigation is not currently supported on mobile devices. Please use the site's menu to navigate manually."
-        }
-
         if (openInNewTab) {
             window.open(target, "_blank")
             return `Opening ${target} in new tab...`
@@ -380,51 +372,8 @@ export const useAgentNavigation = ({
                 const links = document.querySelectorAll(selector)
                 if (links.length > 0) {
                     const link = links[0] as HTMLElement
-                    addLog?.(`✅ Found link element, attempting navigation: ${selector}`, "success")
-
-                    try {
-                        // Try standard click first
-                        link.click()
-                        addLog?.(`Navigation via click() executed`, "info")
-                    } catch (e) {
-                        // Fallback to touch event simulation for mobile browsers
-                        addLog?.(`Click failed, trying TouchEvent simulation for mobile`, "info")
-                        try {
-                            // Create a synthetic touch object
-                            const touchObj = {
-                                identifier: Date.now(),
-                                target: link,
-                                clientX: 0,
-                                clientY: 0,
-                                screenX: 0,
-                                screenY: 0,
-                                pageX: 0,
-                                pageY: 0
-                            }
-
-                            // Dispatch touchstart
-                            link.dispatchEvent(new TouchEvent('touchstart', {
-                                bubbles: true,
-                                cancelable: true,
-                                touches: [touchObj as any],
-                                targetTouches: [touchObj as any],
-                                changedTouches: [touchObj as any]
-                            }))
-
-                            // Dispatch touchend after a brief delay
-                            setTimeout(() => {
-                                link.dispatchEvent(new TouchEvent('touchend', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    changedTouches: [touchObj as any]
-                                }))
-                            }, 10)
-
-                            addLog?.(`TouchEvent simulation dispatched for mobile`, "success")
-                        } catch (touchError) {
-                            addLog?.(`TouchEvent simulation also failed: ${touchError}`, "warn")
-                        }
-                    }
+                    addLog?.(`✅ Found link element, clicking: ${selector}`, "success")
+                    link.click()
                     return true
                 }
             }
@@ -442,15 +391,142 @@ export const useAgentNavigation = ({
             return `Navigating to ${finalUrl}...`
         }
 
-        // CRITICAL MOBILE OVERLAY FIX: Missing Link Fallback
-        // In mobile overlay mode, the main site's <a> tags are often missing from the DOM
-        // because the chat is rendered in an isolated layer (React portal, etc.)
-        // This is a last resort that will terminate the session but ensures navigation works
-        addLog?.(`⚠️ No navigation link found in DOM. Using direct assignment fallback for mobile overlay.`, "warn")
-        const targetUrl = new URL(pathPart || '/', window.location.origin).href
-        addLog?.(`Direct navigation to: ${targetUrl}`, "info")
-        window.location.assign(targetUrl)
-        // Note: This will cause a page reload and terminate the agent session
+        // FALLBACK: Router API (if click simulation fails)
+        if (router && router.routes) {
+            addLog?.(`Click simulation failed, trying router.navigate...`, "info")
+            let foundRouteId = null
+            for (const [routeId, routeConfig] of Object.entries(router.routes)) {
+                // @ts-ignore
+                const routePath = routeConfig.path || ""
+                if (normalizeUrl(routePath) === normalizedPath) {
+                    foundRouteId = routeId
+                    break
+                }
+            }
+
+            if (foundRouteId) {
+                addLog?.(`Using Framer router.navigate(${foundRouteId})`, "info")
+                try {
+                    router.navigate(foundRouteId)
+                } catch (e) {
+                    addLog?.(`Router.navigate failed: ${e}`, "warn")
+                }
+                navigated = true
+
+                // IMMEDIATE popstate dispatch - don't wait for Framer to maybe pick it up
+                window.dispatchEvent(new PopStateEvent('popstate', { state: { path: pathPart || '/' } }))
+
+                // Verification: Check if router.navigate actually rendered the page
+                const urlBefore = window.location.href
+                const getPageIdentifier = () => {
+                    // Try to get Framer's current page identifier
+                    const framerPage = document.querySelector('[data-framer-page], [data-framer-name]')
+                    return framerPage?.getAttribute('data-framer-page') ||
+                        framerPage?.getAttribute('data-framer-name') ||
+                        document.title
+                }
+                const contentBefore = getPageIdentifier()
+
+                setTimeout(() => {
+                    const urlAfter = window.location.href
+                    const contentAfter = getPageIdentifier()
+
+                    addLog?.(`Navigation check: URL ${urlBefore} -> ${urlAfter}, content: "${contentBefore}" -> "${contentAfter}"`, "info")
+
+                    // If URL changed but content is still the same, try additional soft navigation methods
+                    if (urlAfter.includes(normalizedPath) && contentAfter === contentBefore) {
+                        addLog?.(`⚠️ Zombie Navigation detected - URL changed but page didn't render`, "warn")
+
+                        // AGGRESSIVE RETRY: Force navigation with pushState + event flooding
+                        addLog?.(`Attempting aggressive retry with pushState + event flooding`, "info")
+                        window.history.pushState({ path: pathPart || '/' }, '', pathPart || '/')
+
+                        // Flood with multiple event types immediately
+                        window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+                        window.dispatchEvent(new Event('popstate'))
+                        window.dispatchEvent(new PopStateEvent('popstate', { state: { path: pathPart || '/' } }))
+
+                        // Delayed retries
+                        setTimeout(() => {
+                            window.dispatchEvent(new Event('popstate'))
+                            window.dispatchEvent(new PopStateEvent('popstate', { state: { path: pathPart || '/' } }))
+                        }, 100)
+
+                        // Final verification after 500ms total
+                        setTimeout(() => {
+                            const finalContent = getPageIdentifier()
+                            if (finalContent === contentBefore) {
+                                addLog?.(`⚠️ Zombie navigation persists. Attempting extended retry (NO page reload)...`, "warn")
+
+                                // CRITICAL: Never use location.assign() - it causes full page reload and kills agent session
+                                let retryCount = 0
+                                const maxRetries = 10
+
+                                const continuousRetry = () => {
+                                    retryCount++
+
+                                    // Try all event signatures + re-calling router
+                                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+                                    window.dispatchEvent(new Event('popstate'))
+                                    window.dispatchEvent(new PopStateEvent('popstate', { state: { path: pathPart || '/' } }))
+                                    window.dispatchEvent(new Event('hashchange'))
+
+                                    if (router && typeof router.navigate === 'function') {
+                                        try { router.navigate(foundRouteId) } catch (e) { }
+                                    }
+
+                                    const currentContent = getPageIdentifier()
+                                    if (currentContent !== contentBefore) {
+                                        addLog?.(`✅ Extended retry successful after ${retryCount} attempts!`, "success")
+                                        return
+                                    }
+
+                                    if (retryCount < maxRetries) {
+                                        setTimeout(continuousRetry, 200)
+                                    } else {
+                                        addLog?.(`⚠️ Navigation zombie - URL updated but page didn't render. Session preserved (no reload).`, "warn")
+                                    }
+                                }
+
+                                continuousRetry()
+
+                            } else {
+                                addLog?.(`✅ Retry successful - page rendered after aggressive retry`, "success")
+                            }
+                        }, 500)
+                    } else {
+                        addLog?.(`✅ Navigation successful`, "success")
+                    }
+                }, 400)
+            } else {
+                addLog?.(`⚠️ No matching route found in Framer router, falling back to History API`, "warn")
+            }
+        } else {
+            addLog?.(`⚠️ Framer router not available (router: ${!!router}, routes: ${!!(router && router.routes)})`, "warn")
+        }
+
+        if (!navigated) {
+            // Fallback: History API (if router fails/missing)
+            // Use pushState + popstate for soft navigation (preserves agent session)
+            addLog?.(`Using History API fallback: pushState(${pathPart || '/'})`, "info")
+            window.history.pushState({ path: pathPart || '/' }, "", pathPart || '/')
+            window.dispatchEvent(new PopStateEvent('popstate', { state: { path: pathPart || '/' } }))
+
+            // Dispatch additional popstate events as Framer may need multiple triggers
+            setTimeout(() => {
+                window.dispatchEvent(new Event('popstate'))
+            }, 50)
+            setTimeout(() => {
+                window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+            }, 100)
+        }
+
+        // If there's an anchor, scroll to it after navigation completes
+        if (hasAnchor) {
+            // Wait for page to load/render before scrolling
+            setTimeout(() => scrollToAnchor(anchorPart), 300)
+        }
+
         return `Navigating to ${finalUrl}...`
     }
 

@@ -1381,19 +1381,18 @@ const warmUpAudioContext = async (debug: boolean): Promise<void> => {
             await globalAudioContext.resume()
         }
 
-        // Play a longer silent buffer (400ms) to fully activate audio pipeline
-        // Mobile devices need more time to initialize audio output, preventing first words cutoff
+        // Play a slightly longer silent buffer (200ms) to fully activate audio pipeline
+        // Short buffers may not be enough to initialize the output on some devices
         const sampleRate = globalAudioContext.sampleRate || 22050
-        const bufferLength = Math.floor(sampleRate * 0.4) // 400ms - extended for mobile reliability
+        const bufferLength = Math.floor(sampleRate * 0.2) // 200ms
         const buffer = globalAudioContext.createBuffer(1, bufferLength, sampleRate)
         const source = globalAudioContext.createBufferSource()
         source.buffer = buffer
         source.connect(globalAudioContext.destination)
         source.start(0)
 
-        // Wait for the buffer to finish plus settling time before proceeding
-        // 500ms total ensures audio pipeline is fully active on all mobile browsers
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Wait for the buffer to finish playing before proceeding
+        await new Promise(resolve => setTimeout(resolve, 250))
 
         if (debug) console.log("[ElevenLabs] Mobile audio context warmed up")
     } catch (e) {
@@ -1687,7 +1686,6 @@ function useSessionConnection(options: UseSessionConnectionOptions): UseSessionC
 
         isConnectingRef.current = true
         userRequestedDisconnectRef.current = false  // Reset permanent flag - new connection should receive messages
-        retryCountRef.current = 0  // Reset so each user-initiated click gets a fresh retry budget
         const attemptId = ++connectionAttemptIdRef.current
         lastConnectOptionsRef.current = connectOptions
         setError("")
@@ -1845,14 +1843,12 @@ function useSessionConnection(options: UseSessionConnectionOptions): UseSessionC
                             vad: {
                                 // VAD threshold: Default 0.4, range 0.1-0.9 (per ElevenLabs docs)
                                 // Lower = more sensitive, Higher = less sensitive to background
-                                // iOS Safari: 0.85 - CRITICAL for echo prevention (no hardware AEC)
-                                // Other platforms: 0.7 - still strict for background voice filtering
-                                vad_threshold: isIOSSafari() ? 0.85 : Math.max(vadThreshold, 0.7),
+                                // Cross-platform hardened to 0.6 to prevent background noise triggers
+                                vad_threshold: Math.max(vadThreshold, 0.6),
 
-                                // Filter brief noise bursts and background chatter
-                                // iOS Safari: 500ms to prevent echo from TTS bleeding into mic
-                                // Other platforms: 300ms for sustained speech detection
-                                min_speech_duration_ms: isIOSSafari() ? 500 : 300,
+                                // Filter brief noise bursts (door slams, coughs, TV audio spikes)
+                                // Only trigger on sustained speech of 150ms+ 
+                                min_speech_duration_ms: 150,
 
                                 // Official API parameter from elevenlabs.io/docs/agents-platform
                                 // Disable to prevent agent from picking up background voices/audio
@@ -1898,10 +1894,6 @@ function useSessionConnection(options: UseSessionConnectionOptions): UseSessionC
                     onDisconnect: (details: DisconnectDetails) => {
                         // Guard: Don't cascade if we initiated disconnect OR if we're in a mode transition
                         if (stateRef.current === "disconnected" || isCleaningUpRef.current || isTransitioningRef.current) return
-
-                        // CRITICAL FIX: Set flag IMMEDIATELY to block any pending mode changes
-                        // This prevents race condition where onModeChange fires after disconnect begins
-                        userRequestedDisconnectRef.current = true
 
                         // Calculate session metrics for debugging
                         const sessionDuration = sessionStartTimeRef.current
@@ -1969,12 +1961,6 @@ function useSessionConnection(options: UseSessionConnectionOptions): UseSessionC
                                 setStateSafe("speaking")
                             } else if (mode.mode === "listening") {
                                 listeningDebounceRef.current = setTimeout(() => {
-                                    // CRITICAL FIX: Check disconnect flag during debounce callback
-                                    // State could have changed to disconnected during the 600ms delay
-                                    if (userRequestedDisconnectRef.current || stateRef.current === "disconnected") {
-                                        return  // Don't update state if disconnect has begun
-                                    }
-
                                     const outputVol = conversationRef.current?.getOutputVolume?.() || 0
                                     if (stateRef.current !== "disconnected" && outputVol < 0.01) {
                                         if (conversationRef.current?.setMicMuted) {
@@ -2118,14 +2104,6 @@ function useSessionConnection(options: UseSessionConnectionOptions): UseSessionC
             if (!isRetryingWithFallback) {
                 isConnectingRef.current = false
             }
-            // SAFETY NET: If isConnectingRef is still true after 15s, force-reset
-            // Covers edge cases where fallback chains fail silently (e.g., unmount during retry)
-            setTimeout(() => {
-                if (isConnectingRef.current) {
-                    isConnectingRef.current = false
-                    if (debug) console.warn("[ElevenLabs] Safety: reset stale isConnectingRef after 15s")
-                }
-            }, 15000)
         }
     }, [
         agentId, startWithText, shareContext, contextAllowlist,
@@ -2958,14 +2936,6 @@ const useAgentNavigation = ({
 
         if (typeof window === "undefined") return "Navigation queued (SSR)."
 
-        // MOBILE NAVIGATION BLOCK: Disable navigation on mobile devices
-        // Mobile overlay mode has DOM isolation issues that prevent reliable navigation
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        if (isMobile) {
-            addLog?.(`❌ Navigation blocked on mobile device`, "warn")
-            return "Navigation is not currently supported on mobile devices. Please use the site's menu to navigate manually."
-        }
-
         if (openInNewTab) {
             window.open(target, "_blank")
             return `Opening ${target} in new tab...`
@@ -3091,51 +3061,8 @@ const useAgentNavigation = ({
                 const links = document.querySelectorAll(selector)
                 if (links.length > 0) {
                     const link = links[0] as HTMLElement
-                    addLog?.(`✅ Found link element, attempting navigation: ${selector}`, "success")
-
-                    try {
-                        // Try standard click first
-                        link.click()
-                        addLog?.(`Navigation via click() executed`, "info")
-                    } catch (e) {
-                        // Fallback to touch event simulation for mobile browsers
-                        addLog?.(`Click failed, trying TouchEvent simulation for mobile`, "info")
-                        try {
-                            // Create a synthetic touch object
-                            const touchObj = {
-                                identifier: Date.now(),
-                                target: link,
-                                clientX: 0,
-                                clientY: 0,
-                                screenX: 0,
-                                screenY: 0,
-                                pageX: 0,
-                                pageY: 0
-                            }
-
-                            // Dispatch touchstart
-                            link.dispatchEvent(new TouchEvent('touchstart', {
-                                bubbles: true,
-                                cancelable: true,
-                                touches: [touchObj as any],
-                                targetTouches: [touchObj as any],
-                                changedTouches: [touchObj as any]
-                            }))
-
-                            // Dispatch touchend after a brief delay
-                            setTimeout(() => {
-                                link.dispatchEvent(new TouchEvent('touchend', {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    changedTouches: [touchObj as any]
-                                }))
-                            }, 10)
-
-                            addLog?.(`TouchEvent simulation dispatched for mobile`, "success")
-                        } catch (touchError) {
-                            addLog?.(`TouchEvent simulation also failed: ${touchError}`, "warn")
-                        }
-                    }
+                    addLog?.(`✅ Found link element, clicking: ${selector}`, "success")
+                    link.click()
                     return true
                 }
             }
@@ -3152,17 +3079,6 @@ const useAgentNavigation = ({
             }
             return `Navigating to ${finalUrl}...`
         }
-
-        // CRITICAL MOBILE OVERLAY FIX: Missing Link Fallback
-        // In mobile overlay mode, the main site's <a> tags are often missing from the DOM
-        // because the chat is rendered in an isolated layer (React portal, etc.)
-        // This is a last resort that will terminate the session but ensures navigation works
-        addLog?.(`⚠️ No navigation link found in DOM. Using direct assignment fallback for mobile overlay.`, "warn")
-        const targetUrl = new URL(pathPart || '/', window.location.origin).href
-        addLog?.(`Direct navigation to: ${targetUrl}`, "info")
-        window.location.assign(targetUrl)
-        // Note: This will cause a page reload and terminate the agent session
-        return `Navigating to ${finalUrl}...`
 
         // FALLBACK: Router API (if click simulation fails)
         if (router && router.routes) {
@@ -5945,7 +5861,7 @@ const TriggerButtonBase = React.memo<TriggerButtonBaseProps>(({
 
     // Right-aligned wrapper to keep right edge fixed during width changes
     return (
-        <div data-trigger-button style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
             <motion.div
                 layout
                 transition={springTransition}
@@ -7032,7 +6948,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         input = { bg: "#2C2C2C" },
         visualizer = { bg: undefined as string | undefined },
         // Button Tokens (By Function)
-        triggerButton = { bg: "#000000", text: "#FFFFFF", focus: "#FFFFFF" },
+        triggerButton = { bg: "#000000", text: "#FFFFFF", focus: "rgba(255,255,255,0.4)" },
         btnSend = { bg: "#000000", text: "#FFFFFF" },
         btnMic = { bg: "#27272A", text: "#FAFAFA" },
         btnEnd = { bg: "#DC2626", text: "#FAFAFA" },
@@ -7148,13 +7064,13 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
     const {
         bg: triggerBg = "#000000",
         text: triggerText = "#FFFFFF",
-        focus: triggerFocus = "#FFFFFF",
+        focus: triggerFocus = "rgba(255,255,255,0.4)",
         borderRadius: triggerBorderRadius = 28,
         border: triggerBorderObj,
         borderWidth: triggerBorderDirectWidth,
         borderStyle: triggerBorderDirectStyle,
         borderColor: triggerBorderDirectColor,
-        padding: triggerPadding = "4px 16px 4px 4px",
+        padding: triggerPadding = "4px 20px 4px 12px",
         gap: triggerGap = 8,
         labelOpen = "Close",
         labelClosed = "Chat",
@@ -7300,7 +7216,6 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
     const disconnectCooldownTimerRef = useRef<number | null>(null)
     const [isInputFocused, setIsInputFocused] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
-    const chatContainerRef = useRef<HTMLDivElement>(null)
     const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // Global cooldown check - uses sessionStorage to survive page navigation (Framer routing)
@@ -7321,21 +7236,10 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         } catch { /* sessionStorage unavailable */ }
     }, [])
 
-    // Global connection lock - uses sessionStorage with TTL to survive page navigation
-    // TTL prevents permanently stuck locks from failed connections
+    // Global connection lock - uses sessionStorage to survive page navigation
     const isInGlobalConnectionLock = useCallback(() => {
         try {
-            const isLocked = sessionStorage.getItem('__elevenLabsConnectionInProgress') === 'true'
-            if (!isLocked) return false
-            // Expire stale locks after 10 seconds (connection should never take this long)
-            const lockTime = parseInt(sessionStorage.getItem('__elevenLabsConnectionLockTime') || '0', 10)
-            if (Date.now() - lockTime > 10000) {
-                sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-                sessionStorage.removeItem('__elevenLabsConnectionLockTime')
-                console.log('[DEBUG] Cleared stale connectionLock (expired after 10s)')
-                return false
-            }
-            return true
+            return sessionStorage.getItem('__elevenLabsConnectionInProgress') === 'true'
         } catch { return false }
     }, [])
 
@@ -7343,10 +7247,8 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         try {
             if (locked) {
                 sessionStorage.setItem('__elevenLabsConnectionInProgress', 'true')
-                sessionStorage.setItem('__elevenLabsConnectionLockTime', String(Date.now()))
             } else {
                 sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-                sessionStorage.removeItem('__elevenLabsConnectionLockTime')
             }
             console.log('[DEBUG] setGlobalConnectionLock =', locked)
         } catch { /* sessionStorage unavailable */ }
@@ -7370,15 +7272,6 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         } catch { /* sessionStorage unavailable */ }
     }, [])
 
-    // Clear stale connection/disconnect locks on mount (e.g., from previous failed connections)
-    useEffect(() => {
-        try {
-            sessionStorage.removeItem('__elevenLabsConnectionInProgress')
-            sessionStorage.removeItem('__elevenLabsConnectionLockTime')
-            sessionStorage.removeItem('__elevenLabsDisconnectInProgress')
-        } catch { /* ignore */ }
-    }, [])
-
     // ═══════════════════════════════════════════════════════════════════════════
     // HOOK: useEffect (React) - Mic denied event listener
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7390,37 +7283,6 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         window.addEventListener("elevenlabs-mic-denied", handleMicDenied as EventListener)
         return () => window.removeEventListener("elevenlabs-mic-denied", handleMicDenied as EventListener)
     }, [])
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // HOOK: useEffect (React) - Click outside to close
-    // PURPOSE: Closes the chat panel when user clicks/taps outside of it
-    // ═══════════════════════════════════════════════════════════════════════════
-    useEffect(() => {
-        if (!isVisible) return
-
-        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-            // Don't close if clicking inside the chat container
-            if (chatContainerRef.current?.contains(event.target as Node)) {
-                return
-            }
-            // Don't close if clicking the trigger button (it has its own toggle logic)
-            const target = event.target as HTMLElement
-            if (target.closest('[data-trigger-button]')) {
-                return
-            }
-            // Close the chat
-            setIsVisible(false)
-        }
-
-        // Use mousedown/touchstart for immediate response (before click completes)
-        document.addEventListener('mousedown', handleClickOutside)
-        document.addEventListener('touchstart', handleClickOutside)
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-            document.removeEventListener('touchstart', handleClickOutside)
-        }
-    }, [isVisible])
 
     // ═══════════════════════════════════════════════════════════════════════════
     // HELPER: Thinking Timeout for Text Mode
@@ -7782,22 +7644,23 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         height: maxHeight,
         borderRadius: cornerRadius,
         backgroundColor: theme.bg,
+        zIndex: 9998, // Above backdrop (9997), below mobileOverlay (9999)
         border: borderWidth > 0 ? `${borderWidth}px ${borderStyle} ${borderColor}` : undefined,
         ...style,
     }
 
-    // Mobile overlay container style - 80% height overlay positioned at bottom
+    // Mobile overlay container style - fullscreen fixed positioning
     // Uses dynamic viewport height (dvh) which adapts when mobile keyboard opens
     const overlayContainerStyle: React.CSSProperties = {
         position: "fixed",
-        top: "auto",
+        top: 0,
         left: 0,
         right: 0,
         bottom: 0,
         width: "100%",
-        height: "80dvh", // 80% of dynamic viewport height
+        height: "100dvh", // Dynamic viewport height - shrinks when keyboard opens
         maxWidth: "100vw",
-        maxHeight: "80dvh",
+        maxHeight: "100dvh", // Dynamic viewport height for keyboard awareness
         borderRadius: 0,
         backgroundColor: theme.bg,
         zIndex: 9999,
@@ -7808,14 +7671,14 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
 
     return (
         <div style={{ position: "relative", width: "100%", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
-            {/* Backdrop for mobile overlay - tap to close */}
+            {/* Click-outside backdrop: dismisses chat when tapping outside */}
             <AnimatePresence>
-                {isMobileOverlay && isVisible && (
+                {isVisible && !isMobileOverlay && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.15 }}
                         onClick={() => setIsVisible(false)}
                         style={{
                             position: "fixed",
@@ -7823,10 +7686,11 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                            zIndex: 9998, // Below the chat panel (9999)
+                            zIndex: 9997, // Below chat (9998) but above page content
+                            backgroundColor: "transparent",
+                            cursor: "default",
                         }}
-                        aria-label="Close chat"
+                        aria-hidden="true"
                     />
                 )}
             </AnimatePresence>
@@ -7834,7 +7698,6 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
             <AnimatePresence mode="wait">
                 {isVisible && (
                     <motion.div
-                        ref={chatContainerRef}
                         className="agent-ui"
                         initial={isDesignMode ? false : { opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -8408,7 +8271,7 @@ addPropertyControls(ElevenLabsVoiceChat, {
         controls: {
             bg: { type: ControlType.Color, title: "Background", defaultValue: "#000000" },
             text: { type: ControlType.Color, title: "Text", defaultValue: "#FFFFFF" },
-            focusRing: { type: ControlType.Color, title: "Focus Ring", defaultValue: "#FFFFFF" },
+            focusRing: { type: ControlType.Color, title: "Focus Ring", defaultValue: "rgba(255,255,255,0.4)" },
             borderRadius: {
                 type: ControlType.Number,
                 title: "Border Radius",
@@ -8431,7 +8294,7 @@ addPropertyControls(ElevenLabsVoiceChat, {
             padding: {
                 type: ControlType.Padding,
                 title: "Padding",
-                defaultValue: "4px 16px 4px 4px",
+                defaultValue: "4px",
             },
             gap: {
                 type: ControlType.Number,

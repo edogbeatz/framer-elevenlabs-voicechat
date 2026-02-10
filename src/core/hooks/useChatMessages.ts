@@ -154,7 +154,38 @@ export function useChatMessages(options: UseChatMessagesOptions): UseChatMessage
      * Add a new message to the history
      */
     const addMessage = useCallback((message: ChatMessage) => {
-        setMessages(prev => [...prev, message])
+        setMessages(prev => {
+            const msg = { ...message, timestamp: message.timestamp || Date.now() }
+
+            // Voice mode ASR lag compensation:
+            // When user's transcript arrives AFTER the agent's response (because ASR
+            // finalization is slower than LLM generation), reorder so user message
+            // appears before the assistant messages it triggered.
+            if (msg.role === "user" && prev.length > 0) {
+                const REORDER_WINDOW_MS = 2000 // Only reorder within 2s window
+                let insertIndex = prev.length
+
+                // Walk backwards through recent assistant messages
+                for (let i = prev.length - 1; i >= 0; i--) {
+                    const p = prev[i]
+                    if (
+                        p.role === "assistant" &&
+                        p.timestamp &&
+                        (msg.timestamp - p.timestamp) < REORDER_WINDOW_MS
+                    ) {
+                        insertIndex = i
+                    } else {
+                        break // Stop at first non-assistant or old message
+                    }
+                }
+
+                if (insertIndex < prev.length) {
+                    return [...prev.slice(0, insertIndex), msg, ...prev.slice(insertIndex)]
+                }
+            }
+
+            return [...prev, msg]
+        })
     }, [])
 
     /**
