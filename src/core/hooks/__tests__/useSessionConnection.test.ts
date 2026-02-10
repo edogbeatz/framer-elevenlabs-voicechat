@@ -35,6 +35,7 @@ describe('useSessionConnection', () => {
         turnEagerness: 'normal' as const,
         turnTimeout: 1.2,
         vadThreshold: 0.5,
+        backgroundVoiceDetection: true,
         onConnect: vi.fn(),
         onDisconnect: vi.fn(),
         onMessage: vi.fn(),

@@ -66,7 +66,8 @@ describe('useElevenLabsSession', () => {
         allowInterruptions: true,
         turnEagerness: 'normal' as const,
         turnTimeout: 1.2,
-        vadThreshold: 0.5
+        vadThreshold: 0.5,
+        redirectToPage: vi.fn().mockResolvedValue('Navigating...'),
     })
 
     beforeEach(() => {
@@ -253,7 +254,8 @@ describe('useElevenLabsSession', () => {
                 onStateChange: vi.fn(),
                 onError: vi.fn(),
                 navigationState: { currentPage: 'About', visitHistory: ['Home', 'About'] },
-                additionalClientTools: { customTool: vi.fn() }
+                additionalClientTools: { customTool: vi.fn() },
+                redirectToPage: vi.fn().mockResolvedValue('Navigating...'),
             }
 
             const { result } = renderHook(() => useElevenLabsSession(fullOptions))
@@ -263,7 +265,8 @@ describe('useElevenLabsSession', () => {
 
         it('uses default values for optional options', () => {
             const minimalOptions = {
-                agentId: 'test-agent'
+                agentId: 'test-agent',
+                redirectToPage: vi.fn().mockResolvedValue('Navigating...'),
             }
 
             const { result } = renderHook(() => useElevenLabsSession(minimalOptions))

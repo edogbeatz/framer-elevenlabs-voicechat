@@ -669,7 +669,7 @@ export function useSessionConnection(options: UseSessionConnectionOptions): UseS
                                     }
 
                                     const outputVol = conversationRef.current?.getOutputVolume?.() || 0
-                                    if (stateRef.current !== "disconnected" && outputVol < 0.01) {
+                                    if ((stateRef.current as string) !== "disconnected" && outputVol < 0.01) {
                                         if (conversationRef.current?.setMicMuted) {
                                             conversationRef.current.setMicMuted(false)
                                         }

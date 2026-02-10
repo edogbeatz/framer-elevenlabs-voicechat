@@ -150,7 +150,7 @@ export const Button = React.memo(React.forwardRef<HTMLButtonElement, ButtonProps
     // Hover state - simple opacity reduction
     const hoverStyle = { opacity: 0.9 }
     const hoverEffect = hoverAnimation || hoverStyle
-    const tapEffect = tapAnimation ? { ...tapAnimation } : { scale: 0.95 }
+    const tapEffect: Record<string, any> = tapAnimation ? { ...tapAnimation } : { scale: 0.95 }
     if (tapEffect.transition === undefined) {
         tapEffect.transition = buttonTapTransition
     }

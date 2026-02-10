@@ -86,6 +86,7 @@ const createDefaultOptions = (): UseElevenLabsSessionOptions => ({
     turnTimeout: 1.2,
     vadThreshold: 0.5,
     enableAutoDisconnect: false,
+    redirectToPage: vi.fn().mockResolvedValue('Navigating...'),
 })
 
 // --- Test Suites ---

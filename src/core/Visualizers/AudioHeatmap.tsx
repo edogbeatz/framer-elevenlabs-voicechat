@@ -951,22 +951,22 @@ function hexToVec4(hex: string): [number, number, number, number] {
 // ============================================
 
 interface AudioHeatmapProps {
-    image: string
-    colors: string[]
-    colorBack: string
-    contour: number
-    innerGlow: number
-    outerGlow: number
-    noise: number
-    angle: number
-    speed: number
-    scale: number
-    fit: "contain" | "cover" | "fill"
-    audioReactivity: number
-    bassToInnerGlow: number
-    midToOuterGlow: number
-    trebleToContour: number
-    volumeToAngle: number
+    image?: string
+    colors?: string[]
+    colorBack?: string
+    contour?: number
+    innerGlow?: number
+    outerGlow?: number
+    noise?: number
+    angle?: number
+    speed?: number
+    scale?: number
+    fit?: "contain" | "cover" | "fill"
+    audioReactivity?: number
+    bassToInnerGlow?: number
+    midToOuterGlow?: number
+    trebleToContour?: number
+    volumeToAngle?: number
     getVolume?: () => number
     width?: number
     height?: number

@@ -180,6 +180,10 @@ export interface ElevenLabsVoiceChatProps {
         trebleToContour?: number
         volumeToAngle?: number
     }
+    /** Visualizer appearance tokens */
+    visualizer?: {
+        bg?: string
+    }
     /** @deprecated Use heatmap.scale instead */
     visualizerScale?: number
     // Sound Effects (CDN URLs from Framer File controls)

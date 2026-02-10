@@ -111,7 +111,7 @@ export default function BarVisualizer({
         new Array(barCount).fill(0)
     )
     const [hasMounted, setHasMounted] = useState(false)
-    const animationRef = useRef<number>()
+    const animationRef = useRef<number>(0)
 
     useEffect(() => setHasMounted(true), [])
 
