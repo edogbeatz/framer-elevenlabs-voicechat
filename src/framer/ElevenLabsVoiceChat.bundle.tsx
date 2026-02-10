@@ -7673,7 +7673,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
         <div style={{ position: "relative", width: "100%", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
             {/* Click-outside backdrop: dismisses chat when tapping outside */}
             <AnimatePresence>
-                {isVisible && !isMobileOverlay && (
+                {isVisible && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -7686,11 +7686,12 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            zIndex: 9997, // Below chat (9998) but above page content
-                            backgroundColor: "transparent",
+                            zIndex: 9997, // Below chat (9998) and trigger (9999) but above page content
+                            backgroundColor: isMobileOverlay ? "rgba(0, 0, 0, 0.5)" : "transparent",
                             cursor: "default",
                         }}
-                        aria-hidden="true"
+                        aria-label={isMobileOverlay ? "Close chat" : undefined}
+                        aria-hidden={isMobileOverlay ? undefined : true}
                     />
                 )}
             </AnimatePresence>
@@ -7971,7 +7972,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
             </AnimatePresence>
 
             {/* Trigger Button - hidden in overlay mode when chat is visible */}
-            {!(isMobileOverlay && isVisible) && (
+            {!(isMobileOverlay && isVisible) && (<div style={{ position: "relative", zIndex: 9999 }}>
                 <TriggerButtonBase
                     label={isVisible ? labelOpen : labelClosed}
                     ariaLabel={isVisible ? "Close chat" : "Open chat"}
@@ -8015,7 +8016,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
                     labelFontFallback={{ size: 14, weight: 600 }}
                     style={{ height: "48px" }}
                 />
-            )}
+            </div>)}
         </div>
     )
 }
