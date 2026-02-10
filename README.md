@@ -2,8 +2,40 @@
 
 > Open-source Framer code component for [ElevenLabs Conversational AI](https://try.elevenlabs.io/hlxl3hypn71z). Drop-in voice + text chat widget with full Framer property controls.
 
+[![Remix in Framer](https://img.shields.io/badge/Remix%20in-Framer-05F?style=for-the-badge&logo=framer&logoColor=white)](https://framer.com/remix/olgoyYpjTXbgS63SDXbt)
+
 <!-- Replace with actual demo GIF/screenshot -->
 <!-- ![Demo](docs/demo.gif) -->
+
+---
+
+## 🎯 Get Started Instantly (Zero Code)
+
+**Never touched code? Start here.** One click and the entire component is in your Framer project.
+
+### Option A — 1-Click Remix (Recommended)
+
+1. **Click the button below** to copy the full project into your Framer account:
+
+   [![Remix in Framer](https://img.shields.io/badge/🚀%20Remix%20in-Framer-05F?style=for-the-badge&logo=framer&logoColor=white)](https://framer.com/remix/olgoyYpjTXbgS63SDXbt)
+
+2. You'll see a preview of the project → click **"Copy"** to duplicate it into your workspace
+3. Open the copied project, paste your **[ElevenLabs Agent ID](https://try.elevenlabs.io/hlxl3hypn71z)** in the component settings
+4. Hit **Preview** — that's it! 🎉
+
+> **What is a Remix link?** It duplicates the entire Framer project (design + components + code) into your own account. Your copy is fully independent — edit anything you want without affecting the original.
+
+### Option B — Manual Copy & Paste
+
+If you already have a Framer project and just want the component:
+
+1. 👉 [**Open the component code**](https://raw.githubusercontent.com/edogbeatz/framer-elevenlabs-voicechat/main/src/framer/ElevenLabsVoiceChat.bundle.tsx) → Select all (`Cmd + A`) → Copy (`Cmd + C`)
+2. In Framer: **Assets** (puzzle icon) → **+** → **Code Component** → Select all default code → Delete → Paste
+3. Drag **ElevenLabsVoiceChat** onto your canvas → paste your **[Agent ID](https://try.elevenlabs.io/hlxl3hypn71z)** → Preview 🎉
+
+> **💡 Tip:** All colors, fonts, button styles, and sounds can be customized in the right-side property panel — no code needed.
+
+---
 
 ## ✨ Features
 
@@ -18,32 +50,6 @@
 ### 💬 What you get out of the box
 
 This component comes packed with features that are hard to build yourself in Framer — like **voice-triggered page navigation** (something Framer doesn't natively support well, but we found creative workarounds for), **real-time audio visualizers**, **text + voice mode switching**, and **mobile-optimized overlays**. All you need to get started is an **ElevenLabs Agent ID** — paste it in and everything just works.
-
-## 🚀 Quick Start (No coding required!)
-
-You don't need to know how to code to use this. Just copy, paste, and go.
-
-### Step 1 — Open the component file
-
-👉 [**Click here to open the component code**](https://raw.githubusercontent.com/edogbeatz/framer-elevenlabs-voicechat/main/src/framer/ElevenLabsVoiceChat.bundle.tsx)
-
-Select everything on that page (`Cmd + A`) and copy it (`Cmd + C`).
-
-### Step 2 — Paste it into Framer
-
-1. Open your **Framer** project
-2. In the left sidebar, click **Assets** (the puzzle piece icon)
-3. Click the **+** button → choose **Code Component**
-4. **Select all** the default code that appears (`Cmd + A`) and **delete** it
-5. **Paste** the code you copied (`Cmd + V`)
-
-### Step 3 — Add it to your page
-
-1. Drag the new **ElevenLabsVoiceChat** component from the Assets panel onto your canvas
-2. On the right panel, paste your **ElevenLabs Agent ID** (you get this from [elevenlabs.io](https://try.elevenlabs.io/hlxl3hypn71z))
-3. Hit **Preview** — that's it! 🎉
-
-> **💡 Tip:** All the colors, fonts, button styles, and sounds can be customized in the right-side property panel — no code needed.
 
 ## 🏗 Architecture
 
