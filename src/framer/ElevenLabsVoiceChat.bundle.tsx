@@ -5945,7 +5945,7 @@ const TriggerButtonBase = React.memo<TriggerButtonBaseProps>(({
 
     // Right-aligned wrapper to keep right edge fixed during width changes
     return (
-        <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+        <div data-trigger-button style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
             <motion.div
                 layout
                 transition={springTransition}
@@ -8110,7 +8110,6 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
             {/* Trigger Button - hidden in overlay mode when chat is visible */}
             {!(isMobileOverlay && isVisible) && (
                 <TriggerButtonBase
-                    data-trigger-button
                     label={isVisible ? labelOpen : labelClosed}
                     ariaLabel={isVisible ? "Close chat" : "Open chat"}
                     variant={triggerButtonVariant}

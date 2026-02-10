@@ -1334,7 +1334,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
             {/* Trigger Button - hidden in overlay mode when chat is visible */}
             {!(isMobileOverlay && isVisible) && (
                 <TriggerButtonBase
-                    data-trigger-button
                     label={isVisible ? labelOpen : labelClosed}
                     ariaLabel={isVisible ? "Close chat" : "Open chat"}
                     variant={triggerButtonVariant}
