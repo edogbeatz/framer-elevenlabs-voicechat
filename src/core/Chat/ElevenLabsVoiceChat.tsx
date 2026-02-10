@@ -956,19 +956,18 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         ...style,
     }
 
-    // Mobile overlay container style - fullscreen fixed positioning
+    // Mobile overlay container style - 80% height anchored to bottom
     // Uses dynamic viewport height (dvh) which adapts when mobile keyboard opens
     const overlayContainerStyle: React.CSSProperties = {
-        position: "fixed",
-        top: 0,
+        position: isDesignMode ? "absolute" as const : "fixed" as const, // Absolute in design mode so it stays in canvas
+        bottom: 0,
         left: 0,
         right: 0,
-        bottom: 0,
         width: "100%",
-        height: "100dvh", // Dynamic viewport height - shrinks when keyboard opens
+        height: isDesignMode ? "100%" : "80dvh", // 80% viewport height, full height in design mode
         maxWidth: "100vw",
-        maxHeight: "100dvh", // Dynamic viewport height for keyboard awareness
-        borderRadius: 0,
+        maxHeight: isDesignMode ? "100%" : "80dvh",
+        borderRadius: isDesignMode ? cornerRadius : `${cornerRadius}px ${cornerRadius}px 0 0`, // Round top corners only
         backgroundColor: theme.bg,
         zIndex: 9999,
         display: "flex",
@@ -977,7 +976,7 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
     }
 
     return (
-        <div style={{ position: "relative", width: "100%", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
+        <div style={{ position: "relative", minWidth: "fit-content", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
             {/* Click-outside backdrop: dismisses chat when tapping outside */}
             <AnimatePresence>
                 {isVisible && (
@@ -1016,11 +1015,10 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
                             marginBottom: isMobileOverlay ? 0 : "12px", // No margin in overlay mode
                             // Visual Viewport API: shrink container and anchor from BOTTOM when iOS keyboard is open
                             // This keeps the input field positioned just above the keyboard
-                            ...(isMobileOverlay && keyboardOffset > 0 ? {
-                                top: "auto", // Remove top anchoring
+                            ...(isMobileOverlay && keyboardOffset > 0 && !isDesignMode ? {
                                 bottom: 0,   // Anchor from bottom (just above keyboard)
-                                height: `calc(100dvh - ${keyboardOffset}px)`,
-                                maxHeight: `calc(100dvh - ${keyboardOffset}px)`,
+                                height: `calc(80dvh - ${keyboardOffset}px)`,
+                                maxHeight: `calc(80dvh - ${keyboardOffset}px)`,
                             } : {}),
                         }}
                     >
