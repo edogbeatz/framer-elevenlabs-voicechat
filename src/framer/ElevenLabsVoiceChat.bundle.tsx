@@ -7668,7 +7668,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
     }
 
     return (
-        <div style={{ position: "relative", minWidth: "fit-content", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box", ...style }}>
+        <div style={{ ...style, position: "relative", minWidth: "fit-content", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "flex-end", boxSizing: "border-box" }}>
             {/* Click-outside backdrop: dismisses chat when tapping outside */}
             <AnimatePresence>
                 {isVisible && (
