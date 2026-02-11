@@ -953,7 +953,6 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
         backgroundColor: theme.bg,
         zIndex: 9998, // Above backdrop (9997), below trigger (9999)
         border: borderWidth > 0 ? `${borderWidth}px ${borderStyle} ${borderColor}` : undefined,
-        ...style,
     }
 
     // Mobile overlay container style - 80% height anchored to bottom
@@ -976,7 +975,7 @@ export default function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps 
     }
 
     return (
-        <div style={{ position: "relative", minWidth: "fit-content", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box" }}>
+        <div style={{ position: "relative", minWidth: "fit-content", minHeight: "48px", display: "flex", flexDirection: "column", alignItems: "flex-end", boxSizing: "border-box", ...style }}>
             {/* Click-outside backdrop: dismisses chat when tapping outside */}
             <AnimatePresence>
                 {isVisible && (
