@@ -7651,7 +7651,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
     // Mobile overlay container style - 80% height anchored to bottom
     // Uses dynamic viewport height (dvh) which adapts when mobile keyboard opens
     const overlayContainerStyle: React.CSSProperties = {
-        position: isDesignMode ? "absolute" as const : "fixed" as const, // Absolute in design mode so it stays in canvas
+        position: isDesignMode ? "relative" as const : "fixed" as const, // Relative in design mode so it stays in flow and contributes to parent sizing
         bottom: 0,
         left: 0,
         right: 0,
@@ -7969,7 +7969,7 @@ function ElevenLabsVoiceChatCore(props: ElevenLabsVoiceChatProps & { isDesignMod
             </AnimatePresence>
 
             {/* Trigger Button - hidden in overlay mode when chat is visible */}
-            {!(isMobileOverlay && isVisible) && (<div style={{ position: "relative", zIndex: 9999 }}>
+            {(isDesignMode || !(isMobileOverlay && isVisible)) && (<div style={{ position: "relative", zIndex: 9999 }}>
                 <TriggerButtonBase
                     label={isVisible ? labelOpen : labelClosed}
                     ariaLabel={isVisible ? "Close chat" : "Open chat"}
